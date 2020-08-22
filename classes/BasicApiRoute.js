@@ -2,7 +2,7 @@ import { APIResponse } from './APIResponse'
 import schemaValidator from '../serverMiddleware/schemaValidator'
 
 const { Router } = require('express')
-const multer     = require('multer') // multipart/form-data parsing
+const multer = require('multer') // multipart/form-data parsing
 
 /**
  * @typedef CallOptions
@@ -14,7 +14,7 @@ const multer     = require('multer') // multipart/form-data parsing
  */
 
 export class BasicApiRoute {
-  constructor() {
+  constructor () {
     this.router = Router()
 
     this.settings = {
@@ -33,21 +33,23 @@ export class BasicApiRoute {
     }).any()
   }
 
-  _getFullPath(path) {
+  _getFullPath (path) {
     return this.settings.baseApi + path
   }
 
   /**
-   *
    * @param {string} path
    * @param {function(req:Request, res:Response)} call
-   * @param {{method: string}} [options]
+   * @param {{}} [options]
+   * @param {string} options.method
+   * @param {boolean} options.uploader
+   * @param {string} options.downloader
    */
-  addCall(path, call, options = {}) {
+  addCall (path, call, options = {}) {
     const callOptions = Object.assign({}, this.settings.defaultCall, options || {})
-    const fullPath    = this._getFullPath(path)
+    const fullPath = this._getFullPath(path)
 
-    const middlewares = [ schemaValidator ]
+    const middlewares = [schemaValidator]
 
     /*
      If the "uploader" option is true, includes the file uploader middleware
@@ -69,11 +71,37 @@ export class BasicApiRoute {
     })
   }
 
-  _successResp(res, data) {
+  /**
+   * @param {string} path
+   * @param {function(req:Request, res:Response)} call
+   * @param {{}} [options]
+   * @param {string} options.method
+   * @param {boolean} options.uploader
+   * @param {string} options.downloader
+   */
+  addPost (path, call, options = {}) {
+    return this.addCall(path, call, Object.assign(options, {
+      method: 'post'
+    }))
+  }
+
+  /**
+   * @param {string} path
+   * @param {function(req:Request, res:Response)} call
+   * @param {{}} [options]
+   * @param {string} options.method
+   * @param {boolean} options.uploader
+   * @param {string} options.downloader
+   */
+  addGet (path, call, options = {}) {
+    return this.addCall(path, call, options)
+  }
+
+  _successResp (res, data) {
     return new APIResponse(res, data)
   }
 
-  _errorResp(res, error) {
+  _errorResp (res, error) {
     return new APIResponse(res, error, 500)
   }
 }
