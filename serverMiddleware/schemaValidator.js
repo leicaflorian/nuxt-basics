@@ -1,11 +1,44 @@
-import Schemas                   from '../api/schemas'
-import { SchemaValidationError } from '../classes/SchemaValidationError'
-import { APIResponse }           from '../classes/APIResponse'
+import { SchemaValidationError }     from '../classes/SchemaValidationError'
+import { APIResponse }               from '../classes/APIResponse'
+import { capitalize as _capitalize } from 'lodash'
+
+const fs   = require('fs')
+const path = require('path')
+
+const availableSchemas = {}
 
 const _validationOptions = {
   abortEarly:   false,
   allowUnknown: true,
   stripUnknown: true
+}
+
+async function _getSchemaClass (schema) {
+  if (!schema) {
+    return
+  }
+
+  // If the requested schema was already loaded, returns it,
+  // only when not in development mode
+  if (availableSchemas.hasOwnProperty(schema) && process.env.NODE_ENV !== 'development') {
+    return availableSchemas[schema]
+  }
+
+  // Creates the schema path
+  const schemaPath = path.resolve(`/api/schemas/${_capitalize(schema)}Schema.js`)
+
+  // checks if the file exists
+  if (!fs.existsSync(schemaPath)) {
+    return
+  }
+
+  // imports the schema class as a module
+  const schemaClass = (await import(schemaPath))[requestDetails.schema]
+
+  // stores the class in the local cache variable
+  availableSchemas[schema] = schemaClass
+
+  return schemaClass
 }
 
 /**
@@ -15,8 +48,8 @@ const _validationOptions = {
  *
  * @private
  */
-function _getValidationSchema(requestDetails) {
-  const schemaClass = Schemas[requestDetails.schema]
+async function _getValidationSchema (requestDetails) {
+  const schemaClass = await _getSchemaClass(requestDetails.schema)
 
   if (!requestDetails.action || !schemaClass) {
     return null
@@ -35,7 +68,7 @@ function _getValidationSchema(requestDetails) {
   }
 }
 
-function _formatNewBodyData(data) {
+function _formatNewBodyData (data) {
   const toReturn = {}
 
   for (const entry of Object.entries(data)) {
@@ -61,7 +94,7 @@ function _formatNewBodyData(data) {
  * @param {Response} res
  * @param next
  */
-export default function (req, res, next) {
+export default async function (req, res, next) {
   /*
    the path should be formed like "/users/action"
    */
@@ -75,7 +108,7 @@ export default function (req, res, next) {
   }
 
   const dataToValidate      = method === 'get' ? 'query' : 'body'
-  const reqValidationSchema = _getValidationSchema(requestDetails)
+  const reqValidationSchema = await _getValidationSchema(requestDetails)
 
   /**
    * @type {Joi.ValidationResult}
