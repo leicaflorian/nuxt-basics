@@ -1,6 +1,6 @@
 {
   "name": "nuxt-basics",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Collection of basic classes for nuxt",
   "main": "index.js",
   "scripts": {
